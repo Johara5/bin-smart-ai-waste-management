@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* EcoBin Design System - Eco-friendly sustainability theme */
+
+@layer base {
+  :root {
+    /* Core eco-friendly color palette */
+    --background: 120 20% 98%;
+    --foreground: 140 40% 12%;
+
+    --card: 120 25% 99%;
+    --card-foreground: 140 35% 15%;
+
+    --popover: 120 25% 99%;
+    --popover-foreground: 140 35% 15%;
+
+    /* Primary green - main eco color */
+    --primary: 142 76% 36%;
+    --primary-foreground: 120 20% 98%;
+    --primary-glow: 142 65% 45%;
+
+    /* Secondary earth tones */
+    --secondary: 120 15% 92%;
+    --secondary-foreground: 140 35% 20%;
+
+    /* Muted earth tones */
+    --muted: 120 12% 95%;
+    --muted-foreground: 140 25% 45%;
+
+    /* Accent teal/blue */
+    --accent: 180 65% 55%;
+    --accent-foreground: 120 20% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 120 20% 98%;
+
+    --border: 120 20% 88%;
+    --input: 120 20% 94%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Eco-themed gradients */
+    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-earth: linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+    --gradient-nature: linear-gradient(45deg, hsl(142 65% 45%), hsl(180 60% 50%));
+    --gradient-leaf: linear-gradient(135deg, hsl(120 70% 40%), hsl(140 80% 35%));
+
+    /* Rewards & gamification colors */
+    --reward-gold: 45 100% 60%;
+    --reward-silver: 0 0% 75%;
+    --reward-bronze: 30 90% 55%;
+
+    /* Status colors */
+    --success: 142 76% 40%;
+    --warning: 45 95% 55%;
+    --info: 200 90% 55%;
+
+    /* Elegant shadows with eco theme */
+    --shadow-eco: 0 10px 30px -10px hsl(var(--primary) / 0.2);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(var(--primary) / 0.1);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark theme with eco-friendly tones */
+    --background: 140 35% 8%;
+    --foreground: 120 20% 95%;
+
+    --card: 140 30% 12%;
+    --card-foreground: 120 20% 95%;
+
+    --popover: 140 30% 12%;
+    --popover-foreground: 120 20% 95%;
+
+    --primary: 142 65% 45%;
+    --primary-foreground: 140 35% 8%;
+    --primary-glow: 142 70% 50%;
+
+    --secondary: 140 25% 18%;
+    --secondary-foreground: 120 20% 90%;
+
+    --muted: 140 20% 15%;
+    --muted-foreground: 120 15% 65%;
+
+    --accent: 180 60% 45%;
+    --accent-foreground: 140 35% 8%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 120 20% 95%;
+
+    --border: 140 25% 20%;
+    --input: 140 25% 18%;
+    --ring: 142 65% 45%;
+
+    /* Dark theme gradients */
+    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-earth: linear-gradient(180deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+    --gradient-nature: linear-gradient(45deg, hsl(142 70% 40%), hsl(180 65% 40%));
+    --gradient-leaf: linear-gradient(135deg, hsl(120 65% 35%), hsl(140 75% 30%));
+
+    --sidebar-background: 140 30% 10%;
+    --sidebar-foreground: 120 15% 85%;
+    --sidebar-primary: 142 65% 45%;
+    --sidebar-primary-foreground: 140 35% 8%;
+    --sidebar-accent: 140 25% 15%;
+    --sidebar-accent-foreground: 120 15% 85%;
+    --sidebar-border: 140 25% 15%;
+    --sidebar-ring: 142 65% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  /* Eco-themed component classes */
+  .gradient-eco {
+    background: var(--gradient-eco);
+  }
+  
+  .gradient-earth {
+    background: var(--gradient-earth);
+  }
+  
+  .gradient-nature {
+    background: var(--gradient-nature);
+  }
+  
+  .gradient-leaf {
+    background: var(--gradient-leaf);
+  }
+  
+  .shadow-eco {
+    box-shadow: var(--shadow-eco);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+
+  /* Reward point animations */
+  .reward-pulse {
+    animation: reward-pulse 2s infinite;
+  }
+
+  @keyframes reward-pulse {
+    0%, 100% { 
+      transform: scale(1);
+      opacity: 1; 
+    }
+    50% { 
+      transform: scale(1.05);
+      opacity: 0.8; 
+    }
+  }
+
+  /* Eco-friendly hover effects */
+  .eco-hover {
+    @apply transition-smooth;
+  }
+  
+  .eco-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-eco);
+  }
+
+  /* Status indicators */
+  .status-success {
+    color: hsl(var(--success));
+  }
+  
+  .status-warning {
+    color: hsl(var(--warning));
+  }
+  
+  .status-info {
+    color: hsl(var(--info));
+  }
+}
