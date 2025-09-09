@@ -22,13 +22,20 @@ import Navigation from '@/components/Navigation';
 // API service for feedback system
 const feedbackApiService = {
   async submitComplaint(complaintData: any) {
-    const response = await fetch('http://localhost:3001/api/feedback/complaints', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(complaintData)
-    });
-    if (!response.ok) throw new Error('Failed to submit complaint');
-    return await response.json();
+    try {
+      const response = await fetch('http://localhost:3001/api/feedback/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(complaintData)
+      });
+      if (!response.ok) throw new Error('Failed to submit complaint');
+      return await response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Server connection issue. Please check if the server is running.');
+      }
+      throw error;
+    }
   },
 
   async getComplaints(userId: number) {
@@ -37,14 +44,35 @@ const feedbackApiService = {
     return await response.json();
   },
 
-  async submitRating(ratingData: any) {
-    const response = await fetch('http://localhost:3001/api/feedback/ratings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ratingData)
-    });
-    if (!response.ok) throw new Error('Failed to submit rating');
-    return await response.json();
+  async submitRating(ratingData: any, retryCount = 2, onRetry = null) {
+    try {
+      const response = await fetch('http://localhost:3001/api/feedback/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ratingData)
+      });
+      if (!response.ok) throw new Error('Failed to submit rating');
+      return await response.json();
+    } catch (error) {
+      // If we have retries left and it's a network error, retry the request
+      if (retryCount > 0 && error instanceof TypeError && error.message.includes('fetch')) {
+        console.log(`Retrying rating submission... (${retryCount} attempts left)`);
+        
+        // Call the onRetry callback if provided
+        if (onRetry && typeof onRetry === 'function') {
+          onRetry(retryCount);
+        }
+        
+        // Wait for 1 second before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return this.submitRating(ratingData, retryCount - 1, onRetry);
+      }
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Server connection issue. Please check if the server is running.');
+      }
+      throw error;
+    }
   },
 
   async getBinRatings(binId: number) {
@@ -54,13 +82,20 @@ const feedbackApiService = {
   },
 
   async submitSuggestion(suggestionData: any) {
-    const response = await fetch('http://localhost:3001/api/feedback/suggestions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(suggestionData)
-    });
-    if (!response.ok) throw new Error('Failed to submit suggestion');
-    return await response.json();
+    try {
+      const response = await fetch('http://localhost:3001/api/feedback/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(suggestionData)
+      });
+      if (!response.ok) throw new Error('Failed to submit suggestion');
+      return await response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Server connection issue. Please check if the server is running.');
+      }
+      throw error;
+    }
   },
 
   async getUserNotifications(userId: number) {
@@ -118,6 +153,7 @@ const FeedbackSystem = () => {
   const [showSuccess, setShowSuccess] = useState('');
   const [showError, setShowError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -165,9 +201,21 @@ const FeedbackSystem = () => {
         setIsLoading(false);
       }
     };
-
+    
     fetchData();
   }, [currentUserId]);
+  
+  // Function to refresh notifications
+  const refreshNotifications = async () => {
+    try {
+      console.log('Refreshing notifications...');
+      const notificationsData = await feedbackApiService.getUserNotifications(currentUserId);
+      console.log('Refreshed notifications data:', notificationsData);
+      setNotifications(notificationsData || { notifications: [] });
+    } catch (error) {
+      console.error('Failed to refresh notifications:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedBin) {
@@ -218,12 +266,22 @@ const FeedbackSystem = () => {
       setTimeout(() => setShowSuccess(''), 3000);
     } catch (error) {
       console.error('Failed to submit complaint:', error);
-      setShowError('Failed to submit complaint. Please try again.');
-      setTimeout(() => setShowError(''), 5000);
+      
+      // Check if it's a server connection issue
+      if (error instanceof Error && error.message.includes('Server connection issue')) {
+        setShowError('Failed to submit complaint: Server connection issue. Please check if the server is running.');
+      } else {
+        setShowError('Failed to submit complaint. Please try again.');
+      }
+      
+      setTimeout(() => setShowError(''), 7000);
     }
   };
 
-  const handleRatingSubmit = async () => {
+  const handleRatingSubmit = async (event) => {
+    // Prevent form submission default behavior
+    event.preventDefault();
+    
     try {
       console.log('=== RATING SUBMIT STARTED ===');
       console.log('Current ratingForm:', ratingForm);
@@ -231,6 +289,7 @@ const FeedbackSystem = () => {
       
       setShowError('');
       setShowSuccess('');
+      setIsRetrying(false);
       
       if (!ratingForm.bin_id) {
         console.log('No bin selected, showing error');
@@ -240,12 +299,24 @@ const FeedbackSystem = () => {
       
       console.log('Submitting rating to API...');
       
-      const response = await feedbackApiService.submitRating({
+      const ratingData = {
         user_id: currentUserId,
         bin_id: parseInt(ratingForm.bin_id),
         rating: ratingForm.rating,
         comment: ratingForm.comment
-      });
+      };
+      
+      // Define the retry callback
+      const handleRetry = (retriesLeft) => {
+        setIsRetrying(true);
+        setShowError(`Connection issue. Retrying... (${retriesLeft} attempts left)`);
+      };
+      
+      const response = await feedbackApiService.submitRating(ratingData, 2, handleRetry);
+      
+      // Clear retry state
+      setIsRetrying(false);
+      setShowError('');
       
       console.log('Rating API response:', response);
       console.log('Setting success state...');
@@ -281,12 +352,23 @@ const FeedbackSystem = () => {
       
     } catch (error) {
       console.error('=== RATING SUBMIT ERROR ===', error);
-      setShowError('Failed to submit rating. Please try again.');
-      setTimeout(() => setShowError(''), 5000);
+      
+      // Reset retry state
+      setIsRetrying(false);
+      
+      // Check if it's a server connection issue
+      if (error instanceof Error && error.message.includes('Server connection issue')) {
+        setShowError('Failed to submit the rating: Server connection issue. Please check if the server is running.');
+      } else {
+        setShowError('Failed to submit rating. Please try again.');
+      }
+      
+      setTimeout(() => setShowError(''), 7000);
     }
   };
 
-  const handleSuggestionSubmit = async () => {
+  const handleSuggestionSubmit = async (event) => {
+    event.preventDefault();
     
     setShowError('');
     setShowSuccess('');
@@ -308,11 +390,21 @@ const FeedbackSystem = () => {
       setShowSuccess('suggestion');
       setSuggestionForm({ title: '', message: '', category: 'general' });
       
+      // Refresh notifications after submitting suggestion
+      await refreshNotifications();
+      
       setTimeout(() => setShowSuccess(''), 3000);
     } catch (error) {
       console.error('Failed to submit suggestion:', error);
-      setShowError('Failed to submit suggestion. Please try again.');
-      setTimeout(() => setShowError(''), 5000);
+      
+      // Check if it's a server connection issue
+      if (error instanceof Error && error.message.includes('Server connection issue')) {
+        setShowError('Failed to submit suggestion: Server connection issue. Please check if the server is running.');
+      } else {
+        setShowError('Failed to submit suggestion. Please try again.');
+      }
+      
+      setTimeout(() => setShowError(''), 7000);
     }
   };
 
@@ -430,8 +522,11 @@ const FeedbackSystem = () => {
         {showError && (
           <Alert className="mb-6 bg-status-danger/10 border-status-danger">
             <AlertTriangle className="h-4 w-4 text-status-danger" />
-            <AlertDescription className="text-status-danger">
+            <AlertDescription className="text-status-danger flex items-center">
               {showError}
+              {isRetrying && (
+                <span className="ml-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em]"></span>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -459,7 +554,7 @@ const FeedbackSystem = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleComplaintSubmit(); }}>
                   <div>
                     <label className="block text-sm font-medium mb-2">Select Bin</label>
                     <select
@@ -504,9 +599,8 @@ const FeedbackSystem = () => {
                   </div>
 
                   <Button 
-                    type="button" 
+                    type="submit" 
                     className="w-full"
-                    onClick={handleComplaintSubmit}
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Submit Report
@@ -531,7 +625,7 @@ const FeedbackSystem = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-4">
+                  <form className="space-y-4" onSubmit={handleRatingSubmit}>
                     <div>
                       <label className="block text-sm font-medium mb-2">Select Bin</label>
                       <select
@@ -590,9 +684,8 @@ const FeedbackSystem = () => {
                       </Button>
                       
                       <Button 
-                        type="button" 
+                        type="submit" 
                         className="w-full"
-                        onClick={handleRatingSubmit}
                       >
                         <ThumbsUp className="w-4 h-4 mr-2" />
                         Submit Rating
@@ -658,7 +751,7 @@ const FeedbackSystem = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleSuggestionSubmit}>
                   <div>
                     <label className="block text-sm font-medium mb-2">Category</label>
                     <select
@@ -699,9 +792,8 @@ const FeedbackSystem = () => {
                   </div>
 
                   <Button 
-                    type="button" 
+                    type="submit" 
                     className="w-full"
-                    onClick={handleSuggestionSubmit}
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Submit Suggestion
@@ -768,47 +860,61 @@ const FeedbackSystem = () => {
           <TabsContent value="notifications" className="space-y-6">
             <Card className="shadow-card-eco border-0">
               <CardHeader>
-                <CardTitle>Your Notifications</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <Bell className="w-6 h-6 text-status-info" />
+                  <span>Your Notifications</span>
+                </CardTitle>
                 <CardDescription>Updates about your reports and system alerts</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {notifications.notifications.map((notification: any, index: number) => (
-                    <div 
-                      key={index} 
-                      className={`p-4 rounded-lg border ${
-                        notification.is_read ? 'bg-muted/30' : 'bg-status-info/10 border-status-info/20'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className={`font-medium ${!notification.is_read ? 'text-status-info' : ''}`}>
-                            {notification.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {notification.message}
-                          </p>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(notification.created_at).toLocaleDateString()}
-                          </span>
+                  {notifications.notifications && notifications.notifications.length > 0 ? (
+                    notifications.notifications.map((notification, index) => (
+                      <div 
+                        key={index} 
+                        className={`p-4 rounded-lg border ${
+                          notification.is_read ? 'bg-muted/30' : 'bg-status-info/10 border-status-info/20'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className={`font-medium ${!notification.is_read ? 'text-status-info' : ''}`}>
+                              {notification.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {notification.message}
+                            </p>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(notification.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {!notification.is_read && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={async () => {
+                                await feedbackApiService.markNotificationRead(notification.id);
+                                refreshNotifications();
+                              }}
+                            >
+                              Mark Read
+                            </Button>
+                          )}
                         </div>
-                        {!notification.is_read && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => feedbackApiService.markNotificationRead(notification.id)}
-                          >
-                            Mark Read
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                  
-                  {notifications.notifications.length === 0 && (
+                    ))
+                  ) : (
                     <div className="text-center py-8">
                       <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">No notifications yet</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="mt-4"
+                        onClick={refreshNotifications}
+                      >
+                        Refresh Notifications
+                      </Button>
                     </div>
                   )}
                 </div>

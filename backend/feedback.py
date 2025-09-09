@@ -297,6 +297,36 @@ def submit_suggestion():
         result = db_manager.execute_query(query, (user_id, default_bin_id, suggestion_text))
         
         if result:
+            # Create notification for admin users about the new suggestion
+            admin_query = "SELECT id FROM admins"
+            admin_results = db_manager.execute_query(admin_query)
+            admin_ids = [admin['id'] for admin in admin_results] if admin_results else [1]  # Default to admin ID 1 if no admins
+            
+            # Import notification functions from a separate module to avoid circular imports
+            import sys
+            sys.path.append('.')
+            from notifications import create_notification, create_bulk_notifications
+            
+            try:
+                # Create notification for the user who submitted the suggestion
+                create_notification(
+                    user_id, 
+                    "Suggestion Received", 
+                    f"Thank you for your suggestion: {title}", 
+                    "info"
+                )
+                
+                # Notify admins about the new suggestion
+                create_bulk_notifications(
+                    admin_ids,
+                    "New Suggestion Received",
+                    f"User {user_id} submitted a suggestion: {title}",
+                    "alert"
+                )
+                print(f"Notifications created for suggestion: {title}")
+            except Exception as e:
+                print(f"Error creating notifications: {e}")
+            
             return jsonify({'message': 'Suggestion submitted successfully'}), 201
         else:
             return jsonify({'error': 'Failed to submit suggestion'}), 500

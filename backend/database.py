@@ -40,6 +40,10 @@ class DatabaseManager:
     def execute_query(self, query, params=None):
         """Execute a query and return results"""
         try:
+            # Ensure connection is active
+            if not self.connection or not self.connection.is_connected():
+                self.connect()
+                
             cursor = self.connection.cursor(dictionary=True)
             cursor.execute(query, params)
             
@@ -54,6 +58,11 @@ class DatabaseManager:
                 
         except Error as e:
             print(f"Error executing query: {e}")
+            # Try to reconnect and execute again if connection was lost
+            if "MySQL Connection not available" in str(e) or "Not connected" in str(e):
+                print("Attempting to reconnect...")
+                self.connect()
+                return self.execute_query(query, params)  # Try again
             return None
 
     def create_database_if_not_exists(self):
@@ -205,6 +214,19 @@ class DatabaseManager:
 
     def seed_data(self):
         """Insert sample data"""
+        # First check if the region column exists in bins table, add if not
+        check_column_query = """
+            SELECT COUNT(*) as count FROM information_schema.columns 
+            WHERE table_name = 'bins' AND column_name = 'region'
+        """
+        result = self.execute_query(check_column_query)
+        
+        if result and result[0]['count'] == 0:
+            # Add region column if it doesn't exist
+            add_column_query = "ALTER TABLE bins ADD COLUMN region VARCHAR(100)"
+            self.execute_query(add_column_query)
+            print("Added 'region' column to bins table")
+            
         # Sample bins with regions
         sample_bins = [
             ("Central Park - Main Entrance", 40.7831, -73.9712, "Mixed", "Manhattan"),

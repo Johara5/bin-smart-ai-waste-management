@@ -18,6 +18,9 @@ CORS(app)
 # Initialize database manager
 db_manager = DatabaseManager()
 
+# Ensure database connection is established
+db_manager.connect()
+
 # Register blueprints
 app.register_blueprint(analytics_bp)
 app.register_blueprint(feedback_bp)
@@ -39,13 +42,21 @@ def create_user():
     if not username or not email:
         return jsonify({"error": "Username and email are required"}), 400
     
-    query = "INSERT INTO users (username, email) VALUES (%s, %s)"
-    result = db_manager.execute_query(query, (username, email))
-    
-    if result:
-        return jsonify({"message": "User created successfully"}), 201
-    else:
-        return jsonify({"error": "Failed to create user"}), 500
+    # Ensure database connection is active
+    if not db_manager.connection or not db_manager.connection.is_connected():
+        db_manager.connect()
+        
+    try:
+        query = "INSERT INTO users (username, email) VALUES (%s, %s)"
+        result = db_manager.execute_query(query, (username, email))
+        
+        if result:
+            return jsonify({"message": "User created successfully", "username": username}), 201
+        else:
+            return jsonify({"error": "Failed to create user"}), 500
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        return jsonify({"error": f"Failed to create user: {str(e)}"}), 500
 
 @app.route('/api/users/<username>', methods=['GET'])
 def get_user(username):
