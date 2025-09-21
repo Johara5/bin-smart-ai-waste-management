@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export interface User {
   id: number;
@@ -46,6 +46,11 @@ export interface ScanResult {
 }
 
 class ApiService {
+  private getAuthHeader(): HeadersInit {
+    const token = localStorage.getItem('token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+  
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE_URL}/api${endpoint}`;
     
@@ -53,6 +58,7 @@ class ApiService {
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
+          ...this.getAuthHeader(),
           ...options?.headers,
         },
         ...options,
@@ -74,16 +80,62 @@ class ApiService {
     return this.request('/health');
   }
 
-  // User management
-  async createUser(username: string, email: string): Promise<{ message: string }> {
-    return this.request('/users', {
+  // Authentication
+  async login(username: string, password: string): Promise<{ user: User; token: string }> {
+    return this.request('/login', {
       method: 'POST',
-      body: JSON.stringify({ username, email }),
+      body: JSON.stringify({ username, password }),
     });
   }
 
+  async register(username: string, email: string, password: string, city: string): Promise<{ user_id: number; username: string; token: string }> {
+    return this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify({ username, email, password, city }),
+    });
+  }
+  
+  // User management
+
   async getUser(username: string): Promise<User> {
     return this.request(`/users/${username}`);
+  }
+   
+  // Rewards management
+  async getRewards(): Promise<Reward[]> {
+    return this.request('/rewards');
+  }
+   
+  async redeemReward(userId: number, rewardId: number): Promise<{
+    status: string;
+    message: string;
+    reward: Reward;
+    remaining_points: number;
+  }> {
+    return this.request('/rewards/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, reward_id: rewardId }),
+    });
+  }
+   
+  // Waste disposal
+  async recordWasteDisposal(data: {
+    user_id: number;
+    waste_type: string;
+    quantity?: number;
+    location_lat?: number;
+    location_lng?: number;
+    bin_id?: number;
+  }): Promise<{
+    status: string;
+    message: string;
+    points_earned: number;
+    total_points: number;
+  }> {
+    return this.request('/waste-disposal', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async getUserStats(userId: number): Promise<{ user: User; scan_statistics: any[] }> {
@@ -110,6 +162,22 @@ class ApiService {
   // Rewards
   async getRewards(): Promise<Reward[]> {
     return this.request('/rewards');
+  }
+
+  async redeemReward(userId: number, rewardId: number): Promise<{
+    success: boolean;
+    message: string;
+    reward: Reward;
+    points_used: number;
+    remaining_points: number;
+  }> {
+    return this.request('/rewards/redeem', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        reward_id: rewardId
+      }),
+    });
   }
 
   // Leaderboard

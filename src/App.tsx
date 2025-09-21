@@ -9,6 +9,7 @@ import DashboardWithNav from "./pages/DashboardWithNav";
 import Rewards from "./pages/Rewards";
 import BinLocator from "./pages/BinLocator";
 import NotFound from "./pages/NotFound";
+import Introduction from "./pages/Introduction";
 import AdminDashboard from "./components/AdminDashboard";
 import UserHistory from "./components/UserHistory";
 import FeedbackSystem from "./components/FeedbackSystem";
@@ -30,6 +31,7 @@ const App = () => (
         <FloatingAIButton />
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/introduction" element={<Introduction />} />
           <Route path="/dashboard" element={<DashboardWithNav />} />
           <Route path="/scan" element={<WasteScanner />} />
           <Route path="/rewards" element={<Rewards />} />

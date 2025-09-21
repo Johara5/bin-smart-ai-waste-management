@@ -61,7 +61,7 @@ const PIE_COLORS = [COLORS.primary, COLORS.secondary, COLORS.accent, COLORS.dang
 // API service
 const analyticsApiService = {
   async getDashboardSummary() {
-    const response = await fetch('http://localhost:3001/api/analytics/dashboard/summary', {
+    const response = await fetch('http://localhost:8080/api/analytics/dashboard/summary', {
       headers: { 'Authorization': 'Bearer admin-token', 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Failed to fetch dashboard summary');
@@ -69,7 +69,7 @@ const analyticsApiService = {
   },
 
   async getUsersOverview() {
-    const response = await fetch('http://localhost:3001/api/analytics/users/overview', {
+    const response = await fetch('http://localhost:8080/api/analytics/users/overview', {
       headers: { 'Authorization': 'Bearer admin-token', 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Failed to fetch users overview');
@@ -77,7 +77,7 @@ const analyticsApiService = {
   },
 
   async getWasteAnalysis() {
-    const response = await fetch('http://localhost:3001/api/analytics/waste/analysis', {
+    const response = await fetch('http://localhost:8080/api/analytics/waste/analysis', {
       headers: { 'Authorization': 'Bearer admin-token', 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Failed to fetch waste analysis');
@@ -85,7 +85,7 @@ const analyticsApiService = {
   },
 
   async getBinStatus() {
-    const response = await fetch('http://localhost:3001/api/analytics/bins/status', {
+    const response = await fetch('http://localhost:8080/api/analytics/bins/status', {
       headers: { 'Authorization': 'Bearer admin-token', 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Failed to fetch bin status');
@@ -93,7 +93,7 @@ const analyticsApiService = {
   },
 
   async getRewardsAnalysis() {
-    const response = await fetch('http://localhost:3001/api/analytics/rewards/analysis', {
+    const response = await fetch('http://localhost:8080/api/analytics/rewards/analysis', {
       headers: { 'Authorization': 'Bearer admin-token', 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Failed to fetch rewards analysis');
@@ -101,7 +101,7 @@ const analyticsApiService = {
   },
 
   async getGeographicalData() {
-    const response = await fetch('http://localhost:3001/api/analytics/geographical/heatmap', {
+    const response = await fetch('http://localhost:8080/api/analytics/geographical/heatmap', {
       headers: { 'Authorization': 'Bearer admin-token', 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error('Failed to fetch geographical data');

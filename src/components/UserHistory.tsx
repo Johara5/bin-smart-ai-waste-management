@@ -27,7 +27,7 @@ const historyApiService = {
       ...filters
     });
     
-    const response = await fetch(`http://localhost:3001/api/reports/history/${userId}?${params}`);
+    const response = await fetch(`http://localhost:8080/api/reports/history/${userId}?${params}`);
     if (!response.ok) throw new Error('Failed to fetch user history');
     return await response.json();
   },
@@ -35,19 +35,19 @@ const historyApiService = {
   async getLeaderboard(period = 'monthly', category = 'points', limit = 10) {
     const params = new URLSearchParams({ period, category, limit: limit.toString() });
     
-    const response = await fetch(`http://localhost:3001/api/reports/leaderboard?${params}`);
+    const response = await fetch(`http://localhost:8080/api/reports/leaderboard?${params}`);
     if (!response.ok) throw new Error('Failed to fetch leaderboard');
     return await response.json();
   },
 
-  async getUserSummary(userId: number) {
-    const response = await fetch(`http://localhost:3001/api/reports/summary/${userId}`);
+  async getUserSummary(userId) {
+    const response = await fetch(`http://localhost:8080/api/reports/summary/${userId}`);
     if (!response.ok) throw new Error('Failed to fetch user summary');
     return await response.json();
   },
 
-  async exportUserHistory(userId: number, format = 'csv') {
-    const response = await fetch(`http://localhost:3001/api/reports/export/history/${userId}?format=${format}`);
+  async exportUserHistory(userId, format = 'csv') {
+    const response = await fetch(`http://localhost:8080/api/reports/export/history/${userId}?format=${format}`);
     if (!response.ok) throw new Error('Failed to export history');
     
     if (format === 'csv') {
@@ -65,8 +65,8 @@ const historyApiService = {
     }
   },
 
-  async exportLeaderboard(period = 'monthly', format = 'csv') {
-    const response = await fetch(`http://localhost:3001/api/reports/export/leaderboard?period=${period}&format=${format}`);
+  async exportLeaderboard(period = 'all', format = 'csv') {
+    const response = await fetch(`http://localhost:8080/api/reports/export/leaderboard?period=${period}&format=${format}`);
     if (!response.ok) throw new Error('Failed to export leaderboard');
     
     if (format === 'csv') {

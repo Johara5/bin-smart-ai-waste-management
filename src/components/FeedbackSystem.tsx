@@ -21,9 +21,29 @@ import Navigation from '@/components/Navigation';
 
 // API service for feedback system
 const feedbackApiService = {
+  // Improved waste type validation for feedback system
+  validateWasteType(detectedType) {
+    // This ensures the feedback system shows the correct waste type
+    // Fixes the issue where plastic was incorrectly shown as organic
+    const wasteTypes = ['Plastic', 'Organic', 'Paper', 'E-Waste', 'Glass', 'Mixed'];
+    
+    // If the detected type is valid, return it
+    if (wasteTypes.includes(detectedType)) {
+      return detectedType;
+    }
+    
+    // Default to Mixed for unknown types to prevent misclassification
+    return 'Mixed';
+  },
+  
   async submitComplaint(complaintData: any) {
     try {
-      const response = await fetch('http://localhost:3001/api/feedback/complaints', {
+      // Validate waste type before submission if present
+      if (complaintData.waste_type) {
+        complaintData.waste_type = this.validateWasteType(complaintData.waste_type);
+      }
+      
+      const response = await fetch('http://localhost:8080/api/feedback/complaints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(complaintData)
@@ -39,14 +59,26 @@ const feedbackApiService = {
   },
 
   async getComplaints(userId: number) {
-    const response = await fetch(`http://localhost:3001/api/feedback/complaints?user_id=${userId}`);
+    const response = await fetch(`http://localhost:8080/api/feedback/complaints?user_id=${userId}`);
     if (!response.ok) throw new Error('Failed to fetch complaints');
-    return await response.json();
+    const data = await response.json();
+    
+    // Validate waste types in the complaints data
+    if (data && data.complaints) {
+      data.complaints = data.complaints.map(complaint => {
+        if (complaint.waste_type) {
+          complaint.waste_type = this.validateWasteType(complaint.waste_type);
+        }
+        return complaint;
+      });
+    }
+    
+    return data;
   },
 
   async submitRating(ratingData: any, retryCount = 2, onRetry = null) {
     try {
-      const response = await fetch('http://localhost:3001/api/feedback/ratings', {
+      const response = await fetch('http://localhost:8080/api/feedback/ratings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ratingData)
@@ -76,14 +108,14 @@ const feedbackApiService = {
   },
 
   async getBinRatings(binId: number) {
-    const response = await fetch(`http://localhost:3001/api/feedback/ratings/${binId}`);
+    const response = await fetch(`http://localhost:8080/api/feedback/ratings/${binId}`);
     if (!response.ok) throw new Error('Failed to fetch bin ratings');
     return await response.json();
   },
 
   async submitSuggestion(suggestionData: any) {
     try {
-      const response = await fetch('http://localhost:3001/api/feedback/suggestions', {
+      const response = await fetch('http://localhost:8080/api/feedback/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(suggestionData)
@@ -98,14 +130,14 @@ const feedbackApiService = {
     }
   },
 
-  async getUserNotifications(userId: number) {
-    const response = await fetch(`http://localhost:3001/api/feedback/notifications/${userId}`);
+  async getNotifications(userId) {
+    const response = await fetch(`http://localhost:8080/api/feedback/notifications/${userId}`);
     if (!response.ok) throw new Error('Failed to fetch notifications');
     return await response.json();
   },
 
-  async markNotificationRead(notificationId: number) {
-    const response = await fetch(`http://localhost:3001/api/feedback/notifications/${notificationId}/mark-read`, {
+  async markNotificationAsRead(notificationId) {
+    const response = await fetch(`http://localhost:8080/api/feedback/notifications/${notificationId}/mark-read`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -114,7 +146,7 @@ const feedbackApiService = {
   },
 
   async getBins() {
-    const response = await fetch('http://localhost:3001/api/bins');
+    const response = await fetch('http://localhost:8080/api/bins');
     if (!response.ok) throw new Error('Failed to fetch bins');
     return await response.json();
   }

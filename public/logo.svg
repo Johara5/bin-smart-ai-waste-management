@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="90" fill="#e6f7e9" stroke="#34d399" stroke-width="4" />
+  
+  <!-- Bin Body -->
+  <path d="M60,70 L60,160 Q60,170 70,170 L130,170 Q140,170 140,160 L140,70 Z" fill="#34d399" />
+  
+  <!-- Bin Lid -->
+  <path d="M50,70 L150,70 L140,55 L60,55 Z" fill="#059669" />
+  
+  <!-- Recycling Symbol -->
+  <g transform="translate(100,115) scale(0.6)">
+    <path d="M0,-30 L-25,-5 L-10,-5 L-20,15 L0,5 L20,15 L10,-5 L25,-5 Z" fill="#ffffff" />
+  </g>
+  
+  <!-- Smart Text -->
+  <text x="100" y="40" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#059669">BIN SMART</text>
+</svg>

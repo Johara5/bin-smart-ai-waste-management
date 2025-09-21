@@ -40,8 +40,19 @@ const DashboardWithNav = () => {
     const fetchUserData = async () => {
       try {
         setIsLoading(true);
-        // Try to get user data - for demo using hardcoded username
-        const user = await apiService.getUser('johara');
+        
+        // Get user data from localStorage (set during login)
+        const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        
+        if (!storedUser || !token) {
+          // Redirect to login if no user data or token
+          navigate('/');
+          return;
+        }
+        
+        const userData = JSON.parse(storedUser);
+        const user = await apiService.getUser(userData.username);
         const userStatsData = await apiService.getUserStats(user.id);
         
         setUserStats({
@@ -63,23 +74,15 @@ const DashboardWithNav = () => {
         ]);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
-        // Create default user if not exists
-        try {
-          await apiService.createUser('johara', 'johara@example.com');
-          // Set fallback data
-          setRecentActivities([
-            { date: 'Demo', type: 'Start Scanning', points: 0, icon: '👋' }
-          ]);
-        } catch (createError) {
-          console.error('Failed to create user:', createError);
-        }
+        // Redirect to login on error
+        navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchUserData();
-  }, []);
+  }, [navigate]);
 
   const quickActions = [
     {
@@ -132,13 +135,21 @@ const DashboardWithNav = () => {
               <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground">
                 {userStats.currentLevel}
               </Badge>
+              <div className="flex items-center space-x-2">
               <Button 
                 variant="ghost" 
                 size="icon"
                 className="text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={() => {
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('token');
+                  navigate('/');
+                }}
+                title="Logout"
               >
                 <UserIcon className="w-5 h-5" />
               </Button>
+            </div>
             </div>
           </div>
         </div>

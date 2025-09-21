@@ -1,69 +1,155 @@
 import mysql.connector
-from mysql.connector import Error
+from mysql.connector import Error, pooling
 import os
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
 class DatabaseManager:
-    def __init__(self):
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(DatabaseManager, cls).__new__(cls)
+            cls._instance.initialize()
+        return cls._instance
+    
+    def initialize(self):
+        """Initialize database connection parameters and pool"""
         self.host = os.getenv('DB_HOST', 'localhost')
         self.port = int(os.getenv('DB_PORT', 3306))
         self.user = os.getenv('DB_USER', 'root')
         self.password = os.getenv('DB_PASSWORD', '')
         self.database = os.getenv('DB_NAME', 'bin_smart_db')
         self.connection = None
-
-    def connect(self):
-        """Establish database connection"""
+        self.pool = None
+        self.max_pool_size = 10
+        self.pool_name = "bin_smart_pool"
+        self.pool_reset_session = True
+        self.connection_timeout = 30
+        self.init_pool()
+        
+    def init_pool(self):
+        """Initialize connection pool for multiple users"""
         try:
-            self.connection = mysql.connector.connect(
+            self.pool = pooling.MySQLConnectionPool(
+                pool_name=self.pool_name,
+                pool_size=self.max_pool_size,
+                pool_reset_session=self.pool_reset_session,
                 host=self.host,
                 port=self.port,
                 user=self.user,
                 password=self.password,
                 database=self.database
             )
-            if self.connection.is_connected():
-                print(f"Successfully connected to MySQL database: {self.database}")
-                return True
+            print(f"Connection pool initialized with {self.max_pool_size} connections")
+        except Error as e:
+            print(f"Error initializing connection pool: {e}")
+            
+    def connect(self):
+        """Get connection from pool or establish direct connection if pool fails"""
+        try:
+            if self.pool:
+                self.connection = self.pool.get_connection()
+                if self.connection.is_connected():
+                    print(f"Successfully connected to MySQL database from pool: {self.database}")
+                    return True
+            else:
+                # Fallback to direct connection if pool is not available
+                self.connection = mysql.connector.connect(
+                    host=self.host,
+                    port=self.port,
+                    user=self.user,
+                    password=self.password,
+                    database=self.database,
+                    connection_timeout=self.connection_timeout
+                )
+                if self.connection.is_connected():
+                    print(f"Successfully connected to MySQL database: {self.database}")
+                    return True
         except Error as e:
             print(f"Error connecting to MySQL: {e}")
+            # Retry logic for connection failures
+            for attempt in range(3):
+                try:
+                    time.sleep(1)  # Wait before retrying
+                    print(f"Retrying connection (attempt {attempt+1}/3)...")
+                    self.connection = mysql.connector.connect(
+                        host=self.host,
+                        port=self.port,
+                        user=self.user,
+                        password=self.password,
+                        database=self.database,
+                        connection_timeout=self.connection_timeout
+                    )
+                    if self.connection.is_connected():
+                        print(f"Successfully connected to MySQL database on retry: {self.database}")
+                        return True
+                except Error as retry_error:
+                    print(f"Retry attempt {attempt+1} failed: {retry_error}")
             return False
 
     def disconnect(self):
-        """Close database connection"""
+        """Close database connection and return to pool if applicable"""
         if self.connection and self.connection.is_connected():
-            self.connection.close()
-            print("MySQL connection closed")
-
-    def execute_query(self, query, params=None):
-        """Execute a query and return results"""
-        try:
-            # Ensure connection is active
-            if not self.connection or not self.connection.is_connected():
-                self.connect()
-                
-            cursor = self.connection.cursor(dictionary=True)
-            cursor.execute(query, params)
-            
-            if query.strip().upper().startswith(('SELECT', 'SHOW', 'DESCRIBE')):
-                results = cursor.fetchall()
-                cursor.close()
-                return results
+            if self.pool:
+                # Return connection to pool instead of closing
+                self.connection.close()
+                print("MySQL connection returned to pool")
             else:
-                self.connection.commit()
-                cursor.close()
-                return True
+                self.connection.close()
+                print("MySQL connection closed")
+
+    def execute_query(self, query, params=None, max_retries=3):
+        """Execute a query and return results with improved handling for multiple users"""
+        for attempt in range(max_retries + 1):
+            try:
+                # Ensure connection is active
+                if not self.connection or not self.connection.is_connected():
+                    self.connect()
+                    
+                cursor = self.connection.cursor(dictionary=True)
+                cursor.execute(query, params)
                 
-        except Error as e:
-            print(f"Error executing query: {e}")
-            # Try to reconnect and execute again if connection was lost
-            if "MySQL Connection not available" in str(e) or "Not connected" in str(e):
-                print("Attempting to reconnect...")
-                self.connect()
-                return self.execute_query(query, params)  # Try again
-            return None
+                if query.strip().upper().startswith(('SELECT', 'SHOW', 'DESCRIBE')):
+                    results = cursor.fetchall()
+                    cursor.close()
+                    return results
+                else:
+                    self.connection.commit()
+                    cursor.close()
+                    return True
+                    
+            except Error as e:
+                print(f"Error executing query (attempt {attempt+1}/{max_retries+1}): {e}")
+                
+                # Handle specific errors that might occur in multi-user environment
+                if any(error_msg in str(e) for error_msg in [
+                    "MySQL Connection not available", 
+                    "Not connected",
+                    "Connection has been closed",
+                    "Connection reset by peer",
+                    "Lost connection",
+                    "Connection timed out",
+                    "Too many connections"
+                ]):
+                    if attempt < max_retries:
+                        print(f"Connection issue detected. Attempting to reconnect... (attempt {attempt+1}/{max_retries})")
+                        # Close the problematic connection if it exists
+                        if self.connection:
+                            try:
+                                self.connection.close()
+                            except:
+                                pass
+                        self.connection = None
+                        # Get a fresh connection
+                        self.connect()
+                        time.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                        continue
+                return None
+                
+        return None  # All retries failed
 
     def create_database_if_not_exists(self):
         """Create database if it doesn't exist"""
@@ -93,6 +179,7 @@ class DatabaseManager:
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     username VARCHAR(50) UNIQUE NOT NULL,
                     email VARCHAR(100) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255),
                     total_points INT DEFAULT 0,
                     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     region VARCHAR(100),

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Gift, Trophy, Star, CheckCircle, Coffee, ShoppingBag, Smartphone, Crown } from 'lucide-react';
+import { Gift, Trophy, Star, CheckCircle, Coffee, ShoppingBag, Smartphone, Crown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import Navigation from '@/components/Navigation';
 import { apiService, type Reward as ApiReward } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 interface Achievement {
   name: string;
@@ -30,6 +31,7 @@ interface Reward {
 const Rewards = () => {
   const { toast } = useToast();
   const [userStats, setUserStats] = useState({
+    userId: 0,
     totalPoints: 0,
     currentLevel: 1,
     pointsToNextLevel: 200,
@@ -38,6 +40,10 @@ const Rewards = () => {
   });
   const [rewards, setRewards] = useState<ApiReward[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReward, setSelectedReward] = useState<ApiReward | null>(null);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [showRedeemDialog, setShowRedeemDialog] = useState(false);
+  const [redeemSuccess, setRedeemSuccess] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +54,7 @@ const Rewards = () => {
         const userStatsData = await apiService.getUserStats(user.id);
         
         setUserStats({
+          userId: user.id,
           totalPoints: user.total_points,
           currentLevel: Math.floor(user.total_points / 200) + 1,
           pointsToNextLevel: 200 - (user.total_points % 200),
@@ -66,7 +73,38 @@ const Rewards = () => {
     };
     
     fetchData();
-  }, []);
+  }, [redeemSuccess]);
+  
+  const handleRedeemReward = async () => {
+    if (!selectedReward) return;
+    
+    try {
+      setIsRedeeming(true);
+      const result = await apiService.redeemReward(userStats.userId, selectedReward.id);
+      
+      setUserStats(prev => ({
+        ...prev,
+        totalPoints: result.remaining_points
+      }));
+      
+      toast({
+        title: "Reward Redeemed!",
+        description: `You've successfully redeemed ${selectedReward.name}`,
+        variant: "success"
+      });
+      
+      setRedeemSuccess(true);
+      setShowRedeemDialog(false);
+    } catch (error: any) {
+      toast({
+        title: "Redemption Failed",
+        description: error.message || "Failed to redeem reward. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
 
   const achievements: Achievement[] = [
     {
@@ -136,13 +174,10 @@ const Rewards = () => {
     }
   };
 
-  const handleRedeem = (reward: ApiReward) => {
+  const handleRedeem = async (reward: ApiReward) => {
     if (userStats.totalPoints >= reward.points_required) {
-      toast({
-        title: "Reward Redeemed!",
-        description: `You've successfully redeemed ${reward.name}`,
-        duration: 5000
-      });
+      setSelectedReward(reward);
+      setShowRedeemDialog(true);
     } else {
       toast({
         title: "Insufficient Points",
@@ -151,6 +186,53 @@ const Rewards = () => {
       });
     }
   };
+  
+  // Dialog for reward redemption
+  const RedeemDialog = () => (
+    <Dialog open={showRedeemDialog} onOpenChange={setShowRedeemDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Redeem Reward</DialogTitle>
+          <DialogDescription>
+            {selectedReward && (
+              <div className="py-4">
+                <h3 className="text-lg font-semibold">{selectedReward.name}</h3>
+                <p className="text-sm text-gray-500">{selectedReward.description}</p>
+                <div className="flex items-center mt-2">
+                  <Star className="h-5 w-5 text-yellow-500 mr-1" />
+                  <span className="font-medium">{selectedReward.points_required} points</span>
+                </div>
+              </div>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-between items-center">
+          <p className="text-sm">Your points: <span className="font-bold">{userStats.totalPoints}</span></p>
+          {selectedReward && selectedReward.points_required > userStats.totalPoints && (
+            <p className="text-sm text-red-500">Not enough points</p>
+          )}
+        </div>
+        <DialogFooter className="sm:justify-between">
+          <Button variant="outline" onClick={() => setShowRedeemDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleRedeemReward} 
+            disabled={!selectedReward || selectedReward.points_required > userStats.totalPoints || isRedeeming}
+          >
+            {isRedeeming ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Redeeming...
+              </>
+            ) : (
+              'Confirm Redemption'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   const progressPercentage = ((userStats.totalPoints % 1000) / 1000) * 100;
 
@@ -265,7 +347,15 @@ const Rewards = () => {
           <h2 className="text-2xl font-bold text-foreground">Reward Store</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {rewards.map((reward) => {
+            {isLoading ? (
+              <div className="col-span-4 flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : rewards.length === 0 ? (
+              <div className="col-span-4 text-center py-8">
+                <p className="text-muted-foreground">No rewards available at the moment. Check back later!</p>
+              </div>
+            ) : rewards.map((reward) => {
               const Icon = getRewardIcon(reward.category);
               const categoryColor = getCategoryColor(reward.category);
               const canAfford = userStats.totalPoints >= reward.points_required;
@@ -342,6 +432,9 @@ const Rewards = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Redemption Dialog */}
+      <RedeemDialog />
     </div>
   );
 };

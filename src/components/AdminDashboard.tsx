@@ -51,7 +51,7 @@ const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b
 // API service for admin endpoints
 const adminApiService = {
   async getDashboardSummary() {
-    const response = await fetch('http://localhost:3001/api/analytics/dashboard/summary', {
+    const response = await fetch('http://localhost:8080/api/analytics/dashboard/summary', {
       headers: {
         'Authorization': 'Bearer admin-token',
         'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ const adminApiService = {
   },
 
   async getUsersOverview() {
-    const response = await fetch('http://localhost:3001/api/analytics/users/overview', {
+    const response = await fetch('http://localhost:8080/api/analytics/users/overview', {
       headers: {
         'Authorization': 'Bearer admin-token',
         'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ const adminApiService = {
   },
 
   async getWasteAnalysis() {
-    const response = await fetch('http://localhost:3001/api/analytics/waste/analysis', {
+    const response = await fetch('http://localhost:8080/api/analytics/waste/analysis', {
       headers: {
         'Authorization': 'Bearer admin-token',
         'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const adminApiService = {
   },
 
   async getBinStatus() {
-    const response = await fetch('http://localhost:3001/api/analytics/bins/status', {
+    const response = await fetch('http://localhost:8080/api/analytics/bins/status', {
       headers: {
         'Authorization': 'Bearer admin-token',
         'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ const adminApiService = {
   },
 
   async getGeographicalData() {
-    const response = await fetch('http://localhost:3001/api/analytics/geographical/heatmap', {
+    const response = await fetch('http://localhost:8080/api/analytics/geographical/heatmap', {
       headers: {
         'Authorization': 'Bearer admin-token',
         'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ const AdminDashboard = () => {
 
   const exportReport = async (type: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/analytics/reports/export', {
+      const response = await fetch('http://localhost:8080/api/analytics/reports/export', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer admin-token',

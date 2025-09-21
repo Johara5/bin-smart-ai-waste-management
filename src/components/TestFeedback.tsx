@@ -16,7 +16,7 @@ const TestFeedback = () => {
       setStatus('Submitting...');
       
       // Simple API call
-      const response = await fetch('http://localhost:3001/api/feedback/ratings', {
+      const response = await fetch('http://localhost:8080/api/feedback/ratings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
