@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation as NavigationIcon, Search, Filter, RefreshCw, Phone, Clock } from 'lucide-react';
+import { MapPin, Navigation as NavigationIcon, Search, Filter, RefreshCw, Phone, Clock, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import Navigation from '@/components/Navigation';
+import { useNavigate } from 'react-router-dom';
 import { apiService, type Bin } from '@/lib/api';
 
 interface SmartBin {
@@ -22,6 +22,7 @@ interface SmartBin {
 
 const BinLocator = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -177,7 +178,30 @@ const BinLocator = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      {/* Simple Navigation */}
+      <div className="bg-card shadow-sm border-b border-border p-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </Button>
+          <div className="flex items-center space-x-2">
+            <MapPin className="w-6 h-6 text-primary" />
+            <span className="text-lg font-bold text-foreground">Find Bins</span>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+            size="icon"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

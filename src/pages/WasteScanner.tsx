@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Scan, Sparkles, CheckCircle } from 'lucide-react';
+import { Camera, Upload, Scan, Sparkles, CheckCircle, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import Navigation from '@/components/Navigation';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '@/lib/api';
 
 // Helper functions for improved waste detection
@@ -88,6 +88,7 @@ interface ScanResult {
 
 const WasteScanner = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -152,30 +153,18 @@ const WasteScanner = () => {
     // Simulate AI processing delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Image analysis simulation - in a real app, this would use actual image recognition
-    // For demo purposes, we'll implement a more accurate detection system
-    
-    // Get image data from the selected image
     const imageData = selectedImage || '';
-    
-    // Improved waste detection algorithm
-    // This uses image characteristics to determine waste type more accurately
-    
-    // In a real app, this would use computer vision AI
-    // For our demo, we'll use a more reliable pattern matching approach
-    
-    // Extract color information from the image (simplified simulation)
     const imageColors = extractImageColors(imageData);
-    
-    // Match colors to waste types for more accurate detection
     const detectedType = determineWasteTypeFromColors(imageColors, wasteTypes);
-    
-    // High confidence for our improved detection
-    const confidence = 95; // Fixed high confidence level
+    const confidence = 95;
     
     // Submit scan to MySQL database via Python backend
     try {
-      const userId = 1; // For demo - in real app, get from user context
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) throw new Error('User not found');
+      
+      const userData = JSON.parse(storedUser);
+      const user = await apiService.getUser(userData.username);
       const apiResult = await apiService.submitScan(userId, detectedType.name, confidence);
       
       return {
@@ -219,8 +208,11 @@ const WasteScanner = () => {
       
       // Record the waste disposal to earn points
       try {
-        // Get the current user (in a real app, this would be from auth context)
-        const user = await apiService.getUser('johara');
+        const storedUser = localStorage.getItem('user');
+        if (!storedUser) throw new Error('User not found');
+        
+        const userData = JSON.parse(storedUser);
+        const user = await apiService.getUser(userData.username);
         
         // Record the waste disposal
         const apiResult = await apiService.recordWasteDisposal({
@@ -289,7 +281,30 @@ const WasteScanner = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      {/* Simple Navigation */}
+      <div className="bg-card shadow-sm border-b border-border p-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </Button>
+          <div className="flex items-center space-x-2">
+            <Recycle className="w-6 h-6 text-primary" />
+            <span className="text-lg font-bold text-foreground">BinSmart</span>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+            size="icon"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

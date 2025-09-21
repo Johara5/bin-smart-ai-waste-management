@@ -1,30 +1,27 @@
 import { useState, useEffect } from 'react';
-import { apiService, type User } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
-  Bot, 
   QrCode, 
   Gift, 
   Recycle, 
   Leaf, 
   Trophy, 
   TrendingUp,
-  Navigation as NavigationIcon,
   Camera,
-  MessageCircle,
-  User as UserIcon
+  User,
+  LogOut,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useNavigate } from 'react-router-dom';
-import Navigation from '@/components/Navigation';
-import SimpleAIAssistant from '@/components/SimpleAIAssistant';
+import { apiService } from '@/lib/api';
 
-const DashboardWithNav = () => {
+const Dashboard = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState('Johara');
+  const [userName, setUserName] = useState('User');
   const [userStats, setUserStats] = useState({
     totalDisposals: 0,
     rewardPoints: 0,
@@ -34,48 +31,58 @@ const DashboardWithNav = () => {
   });
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setIsLoading(true);
         
-        // Get user data from localStorage (set during login)
+        // Get user data from localStorage
         const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('token');
         
         if (!storedUser || !token) {
-          // Redirect to login if no user data or token
-          navigate('/');
+          navigate('/auth');
           return;
         }
         
         const userData = JSON.parse(storedUser);
-        const user = await apiService.getUser(userData.username);
-        const userStatsData = await apiService.getUserStats(user.id);
+        setUserName(userData.username);
         
-        setUserStats({
-          totalDisposals: userStatsData.scan_statistics.reduce((sum: number, stat: any) => sum + stat.scan_count, 0),
-          rewardPoints: user.total_points,
-          co2Saved: Math.round(user.total_points * 0.02 * 100) / 100, // Estimate: 1 point = 0.02kg CO2 saved
-          currentLevel: user.total_points > 500 ? 'Eco Champion' : user.total_points > 200 ? 'Eco Warrior' : 'Beginner',
-          nextLevelPoints: user.total_points > 500 ? 1000 - user.total_points : user.total_points > 200 ? 500 - user.total_points : 200 - user.total_points
-        });
-        
-        setUserName(user.username);
-        
-        // Set default recent activities for demo
-        setRecentActivities([
-          { date: '2 hours ago', type: 'Plastic Bottle', points: 15, icon: '🍼' },
-          { date: 'Yesterday', type: 'Organic Waste', points: 8, icon: '🥬' },
-          { date: '2 days ago', type: 'E-Waste', points: 25, icon: '📱' },
-          { date: '3 days ago', type: 'Paper', points: 10, icon: '📄' },
-        ]);
+        // Fetch fresh user data from API
+        try {
+          const user = await apiService.getUser(userData.username);
+          const userStatsData = await apiService.getUserStats(user.id);
+          
+          setUserStats({
+            totalDisposals: userStatsData.scan_statistics.reduce((sum: number, stat: any) => sum + stat.scan_count, 0),
+            rewardPoints: user.total_points,
+            co2Saved: Math.round(user.total_points * 0.02 * 100) / 100,
+            currentLevel: user.total_points > 500 ? 'Eco Champion' : user.total_points > 200 ? 'Eco Warrior' : 'Beginner',
+            nextLevelPoints: user.total_points > 500 ? 1000 - user.total_points : user.total_points > 200 ? 500 - user.total_points : 200 - user.total_points
+          });
+          
+          // Mock recent activities
+          setRecentActivities([
+            { date: '2 hours ago', type: 'Plastic Bottle', points: 10, icon: '🍼' },
+            { date: 'Yesterday', type: 'Organic Waste', points: 5, icon: '🥬' },
+            { date: '2 days ago', type: 'E-Waste', points: 20, icon: '📱' },
+            { date: '3 days ago', type: 'Paper', points: 8, icon: '📄' },
+          ]);
+        } catch (error) {
+          console.error('Failed to fetch user data:', error);
+          // Use stored data as fallback
+          setUserStats({
+            totalDisposals: 0,
+            rewardPoints: 0,
+            co2Saved: 0,
+            currentLevel: 'Beginner',
+            nextLevelPoints: 100
+          });
+        }
       } catch (error) {
-        console.error('Failed to fetch user data:', error);
-        // Redirect to login on error
-        navigate('/');
+        console.error('Error loading user data:', error);
+        navigate('/auth');
       } finally {
         setIsLoading(false);
       }
@@ -84,42 +91,46 @@ const DashboardWithNav = () => {
     fetchUserData();
   }, [navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    navigate('/');
+  };
+
   const quickActions = [
     {
+      icon: Camera,
+      title: 'Scan Waste',
+      description: 'Identify and dispose waste properly',
+      color: 'bg-gradient-eco',
+      onClick: () => navigate('/scan')
+    },
+    {
       icon: MapPin,
-      title: 'Locate Nearest Bin',
-      description: 'Find smart bins near you',
+      title: 'Find Bins',
+      description: 'Locate smart bins near you',
       color: 'bg-status-info',
       onClick: () => navigate('/bins')
     },
     {
-      icon: Bot,
-      title: 'AI Assistant',
-      description: 'Ask about waste disposal',
-      color: 'bg-gradient-eco',
-      onClick: () => setIsAIAssistantOpen(true)
-    },
-    {
-      icon: QrCode,
-      title: 'Scan Waste QR',
-      description: 'Verify your disposal',
-      color: 'bg-status-success',
-      onClick: () => navigate('/scan')
-    },
-    {
       icon: Gift,
       title: 'My Rewards',
-      description: 'Check points & redeem',
+      description: 'Check points & redeem rewards',
       color: 'bg-reward-gold',
       onClick: () => navigate('/rewards')
     }
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-lg">Loading dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      
       {/* Header */}
       <header className="bg-gradient-earth p-6 text-primary-foreground">
         <div className="max-w-7xl mx-auto">
@@ -135,21 +146,15 @@ const DashboardWithNav = () => {
               <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground">
                 {userStats.currentLevel}
               </Badge>
-              <div className="flex items-center space-x-2">
               <Button 
                 variant="ghost" 
                 size="icon"
                 className="text-primary-foreground hover:bg-primary-foreground/20"
-                onClick={() => {
-                  localStorage.removeItem('user');
-                  localStorage.removeItem('token');
-                  navigate('/');
-                }}
+                onClick={handleLogout}
                 title="Logout"
               >
-                <UserIcon className="w-5 h-5" />
+                <LogOut className="w-5 h-5" />
               </Button>
-            </div>
             </div>
           </div>
         </div>
@@ -211,11 +216,11 @@ const DashboardWithNav = () => {
           </CardHeader>
           <CardContent>
             <Progress 
-              value={80} 
+              value={((userStats.rewardPoints % 200) / 200) * 100} 
               className="h-3 bg-secondary"
             />
             <p className="text-sm text-muted-foreground mt-2">
-              Keep disposing responsibly to unlock Eco Champion status!
+              Keep disposing responsibly to unlock {userStats.currentLevel === 'Beginner' ? 'Eco Warrior' : 'Eco Champion'} status!
             </p>
           </CardContent>
         </Card>
@@ -223,7 +228,7 @@ const DashboardWithNav = () => {
         {/* Quick Actions */}
         <div className="space-y-4 mb-8">
           <h2 className="text-xl font-semibold text-foreground">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {quickActions.map((action, index) => (
               <Card 
                 key={index} 
@@ -239,7 +244,6 @@ const DashboardWithNav = () => {
                       <h3 className="font-semibold text-foreground">{action.title}</h3>
                       <p className="text-sm text-muted-foreground">{action.description}</p>
                     </div>
-                    <NavigationIcon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </CardContent>
               </Card>
@@ -281,8 +285,7 @@ const DashboardWithNav = () => {
                 Every Action Counts!
               </h3>
               <p className="text-primary-foreground/80">
-                You've helped save {userStats.co2Saved}kg of CO₂ this month. 
-                Keep up the great work!
+                You've helped save {userStats.co2Saved}kg of CO₂. Keep up the great work!
               </p>
               <Button 
                 variant="secondary"
@@ -291,20 +294,14 @@ const DashboardWithNav = () => {
                 onClick={() => navigate('/scan')}
               >
                 <Camera className="w-4 h-4 mr-2" />
-                Dispose Something Now
+                Scan Waste Now
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* AI Assistant Modal */}
-      <SimpleAIAssistant 
-        isOpen={isAIAssistantOpen} 
-        onClose={() => setIsAIAssistantOpen(false)} 
-      />
     </div>
   );
 };
 
-export default DashboardWithNav;
+export default Dashboard;
