@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Gift, Trophy, Star, CheckCircle, Coffee, ShoppingBag, Smartphone, Crown, Loader2 } from 'lucide-react';
+import { Gift, Trophy, Star, CheckCircle, Coffee, ShoppingBag, Smartphone, Crown, Loader2, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import Navigation from '@/components/Navigation';
+import { useNavigate } from 'react-router-dom';
 import { apiService, type Reward as ApiReward } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
@@ -30,6 +30,7 @@ interface Reward {
 
 const Rewards = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [userStats, setUserStats] = useState({
     userId: 0,
     totalPoints: 0,
@@ -49,8 +50,15 @@ const Rewards = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        // Fetch user data
-        const user = await apiService.getUser('johara');
+        
+        const storedUser = localStorage.getItem('user');
+        if (!storedUser) {
+          navigate('/auth');
+          return;
+        }
+        
+        const userData = JSON.parse(storedUser);
+        const user = await apiService.getUser(userData.username);
         const userStatsData = await apiService.getUserStats(user.id);
         
         setUserStats({
@@ -238,7 +246,30 @@ const Rewards = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      {/* Simple Navigation */}
+      <div className="bg-card shadow-sm border-b border-border p-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </Button>
+          <div className="flex items-center space-x-2">
+            <Gift className="w-6 h-6 text-primary" />
+            <span className="text-lg font-bold text-foreground">Rewards</span>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+            size="icon"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -423,7 +454,7 @@ const Rewards = () => {
                 variant="secondary"
                 size="lg"
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                onClick={() => window.location.href = '/scan'}
+                onClick={() => navigate('/scan')}
               >
                 <Star className="w-4 h-4 mr-2" />
                 Start Scanning
