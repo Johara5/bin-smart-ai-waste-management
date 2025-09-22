@@ -1,60 +1,35 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Leaf, Recycle, MapPin, QrCode, Gift, BarChart3, ArrowRight } from 'lucide-react';
 import ecoHeroImage from '@/assets/ecobin-hero.jpg';
 
 const Introduction = () => {
   const navigate = useNavigate();
-  
+
   const goToAuth = () => {
-    navigate('/');
-  };
-
-  const goToDashboard = () => {
-    navigate('/dashboard');
-  };
-
-  const goToBinLocator = () => {
-    navigate('/bin-locator');
-  };
-
-  const goToWasteScanner = () => {
-    navigate('/waste-scanner');
+    navigate('/auth');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100">
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col items-center text-center mb-12">
-          <img 
-            src="/logo.svg" 
-            alt="Bin Smart Logo" 
-            className="w-32 h-32 mb-6"
-          />
-          <h1 className="text-4xl md:text-5xl font-bold text-green-800 mb-4">Welcome to Bin Smart</h1>
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <Recycle className="h-12 w-12 text-green-600" />
+            <Leaf className="h-8 w-8 text-green-600" />
+            <span className="text-3xl font-bold text-green-800">EcoBin</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-green-800 mb-4">How EcoBin Works</h1>
           <p className="text-xl text-gray-700 max-w-3xl">
             Your intelligent companion for waste management and recycling
           </p>
-          <div className="flex flex-wrap gap-4 mt-6 justify-center">
-            <Button onClick={goToAuth} className="bg-green-600 hover:bg-green-700">
-              Login / Register
-            </Button>
-            <Button onClick={goToDashboard} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
-              Dashboard
-            </Button>
-            <Button onClick={goToBinLocator} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
-              Bin Locator
-            </Button>
-            <Button onClick={goToWasteScanner} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
-              Waste Scanner
-            </Button>
-          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
           <div>
-            <img 
-              src={ecoHeroImage} 
-              alt="Eco-friendly waste management" 
+            <img
+              src={ecoHeroImage}
+              alt="Eco-friendly waste management"
               className="rounded-lg shadow-xl w-full h-auto"
             />
           </div>
@@ -62,19 +37,50 @@ const Introduction = () => {
             <div>
               <h2 className="text-2xl font-bold text-green-700 mb-3">How It Works</h2>
               <p className="text-gray-700">
-                Bin Smart uses advanced technology to help you properly sort and dispose of waste items.
-                Simply scan your waste items, and our AI will guide you to the correct bin, helping you 
-                contribute to a cleaner environment.
+                EcoBin uses advanced technology to help you properly sort and dispose of waste items.
+                Simply scan your waste items, and our AI will guide you to the correct bin, helping you
+                contribute to a cleaner environment while earning rewards for your eco-friendly actions.
               </p>
             </div>
             <div>
               <h2 className="text-2xl font-bold text-green-700 mb-3">Key Features</h2>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>Waste Scanner - Identify the correct bin for any waste item</li>
-                <li>Bin Locator - Find recycling and waste bins near you</li>
-                <li>Rewards System - Earn points for proper waste disposal</li>
-                <li>Personal Dashboard - Track your environmental impact</li>
-                <li>AI Assistant - Get help with any waste-related questions</li>
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <div className="mr-3 bg-green-100 p-2 rounded-full">
+                    <QrCode className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-green-800">Waste Scanner</span>
+                    <p className="text-gray-700">Identify the correct bin for any waste item</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="mr-3 bg-green-100 p-2 rounded-full">
+                    <MapPin className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-green-800">Bin Locator</span>
+                    <p className="text-gray-700">Find recycling and waste bins near you</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="mr-3 bg-green-100 p-2 rounded-full">
+                    <Gift className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-green-800">Rewards System</span>
+                    <p className="text-gray-700">Earn points for proper waste disposal</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="mr-3 bg-green-100 p-2 rounded-full">
+                    <BarChart3 className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-green-800">Personal Dashboard</span>
+                    <p className="text-gray-700">Track your environmental impact</p>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>
@@ -181,8 +187,8 @@ const Introduction = () => {
 
         {/* Get Started Button */}
         <div className="text-center mt-8">
-          <Button 
-            onClick={goToAuth} 
+          <Button
+            onClick={goToAuth}
             className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transition-all"
           >
             Get Started

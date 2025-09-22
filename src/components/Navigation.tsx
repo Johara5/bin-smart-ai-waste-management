@@ -7,13 +7,12 @@ const Navigation = () => {
   const navigate = useNavigate();
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Home, label: 'Introduction', path: '/intro' },
-    { icon: QrCode, label: 'Waste Scanner', path: '/waste-scanner' },
+    { icon: Home, label: 'Home', path: '/dashboard' },
+    { icon: Home, label: 'Introduction', path: '/introduction' },
+    { icon: QrCode, label: 'Scan Waste', path: '/scan' },
     { icon: Gift, label: 'Rewards', path: '/rewards' },
-    { icon: MapPin, label: 'Bin Locator', path: '/bin-locator' },
+    { icon: MapPin, label: 'Find Bins', path: '/bins' },
     { icon: History, label: 'My History', path: '/history' },
-    { icon: UserIcon, label: 'Dashboard', path: '/dashboard' },
     { icon: MessageSquare, label: 'Feedback', path: '/feedback' },
   ];
 
@@ -27,9 +26,9 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/intro')}>
-            <img src="/logo.svg" alt="Bin Smart Logo" className="w-10 h-10" />
-            <span className="text-xl font-bold text-foreground">Bin Smart</span>
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/introduction')}>
+            <img src="/logo.svg" alt="EcoBin Logo" className="w-10 h-10" />
+            <span className="text-xl font-bold text-foreground">EcoBin</span>
           </div>
 
           {/* Navigation Links */}

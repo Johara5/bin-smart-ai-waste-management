@@ -11,7 +11,7 @@ interface AuthPageProps {
   onLogin: () => void;
 }
 
-const AuthPage = ({ onLogin }: AuthPageProps) => {
+const AuthPageFixed = ({ onLogin }: AuthPageProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,96 +32,40 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
 
     try {
       if (isLogin) {
-        // Handle login
-        const response = await fetch('http://localhost:8080/api/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: formData.email,
-            password: formData.password,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Login failed');
-        }
+        // Handle login using apiService
+        const response = await apiService.login(formData.email, formData.password);
 
         // Store user data and token in localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.token);
 
         toast({
           title: 'Login Successful',
-          description: 'Welcome back to BinSmart!',
+          description: 'Welcome back to EcoBin!',
         });
 
         onLogin();
       } else {
-        // Handle registration
-        const response = await fetch('http://localhost:8080/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: formData.email,
-            email: formData.email,
-            password: formData.password,
-            city: formData.city,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Registration failed');
-        }
+        // Handle registration using apiService
+        const response = await apiService.register(formData.email, formData.email, formData.password, formData.city);
 
         // Store user data and token in localStorage
-        if (data.token) {
-          // Safely handle user data with proper null checks
+        if (response.token) {
           const userData = {
-            id: data.user_id || null,
-            username: data.username || formData.email.split('@')[0], // Fallback to email prefix
+            id: response.user_id,
+            username: response.username,
             email: formData.email,
           };
 
-          try {
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('token', data.token);
-
-            toast({
-              title: 'Registration Successful',
-              description: 'Welcome to BinSmart!',
-            });
-
-            onLogin();
-          } catch (storageError) {
-            console.error('Error storing user data:', storageError);
-            setError('Failed to save user session. Please try logging in manually.');
-
-            toast({
-              title: 'Registration Successful',
-              description: 'Please login with your new account',
-            });
-
-            // Switch to login view
-            setIsLogin(true);
-            setFormData(prev => ({ ...prev, password: '' }));
-          }
-        } else {
-          // If no token is returned, switch to login view
-          setIsLogin(true);
-          setFormData(prev => ({ ...prev, password: '' }));
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('token', response.token);
 
           toast({
             title: 'Registration Successful',
-            description: 'Please login with your new account',
+            description: 'Welcome to EcoBin!',
           });
+
+          onLogin();
         }
       }
     } catch (error) {
@@ -158,6 +102,20 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Test Credentials Info */}
+          {isLogin && (
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">Test Credentials:</p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Email: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">testuser</code><br/>
+                Password: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">password</code>
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Or try: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">aishashaikh@gmail.com</code> with password <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">password</code>
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
@@ -178,13 +136,15 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">
+                {isLogin ? 'Email / Username' : 'Email'}
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={isLogin ? "Enter email or username" : "Enter your email"}
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
@@ -257,8 +217,6 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             </div>
           )}
 
-
-
           <div className="text-center">
             <span className="text-sm text-muted-foreground">
               {isLogin ? "Don't have an account? " : "Already have an account? "}
@@ -276,4 +234,4 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
   );
 };
 
-export default AuthPage;
+export default AuthPageFixed;

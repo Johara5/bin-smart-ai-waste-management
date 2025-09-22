@@ -159,26 +159,7 @@ class ApiService {
     return this.request('/bins');
   }
 
-  // Rewards
-  async getRewards(): Promise<Reward[]> {
-    return this.request('/rewards');
-  }
 
-  async redeemReward(userId: number, rewardId: number): Promise<{
-    success: boolean;
-    message: string;
-    reward: Reward;
-    points_used: number;
-    remaining_points: number;
-  }> {
-    return this.request('/rewards/redeem', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        reward_id: rewardId
-      }),
-    });
-  }
 
   // Leaderboard
   async getLeaderboard(): Promise<Array<{ username: string; total_points: number; created_at: string }>> {

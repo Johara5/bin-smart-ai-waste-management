@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from database import DatabaseManager
 from analytics import analytics_bp
-from feedback import feedback_bp
+from feedback_fixed import feedback_bp
 from reports import reports_bp
 from notifications import notifications_bp
 import random
@@ -24,11 +24,11 @@ db_manager = DatabaseManager()
 # Ensure database connection is established
 db_manager.connect()
 
-# Register blueprints
-app.register_blueprint(analytics_bp)
-app.register_blueprint(feedback_bp)
-app.register_blueprint(reports_bp)
-app.register_blueprint(notifications_bp)
+# Register blueprints with URL prefix
+app.register_blueprint(analytics_bp, url_prefix='/api')
+app.register_blueprint(feedback_bp, url_prefix='/api')
+app.register_blueprint(reports_bp, url_prefix='/api')
+app.register_blueprint(notifications_bp, url_prefix='/api')
 
 # Secret key for JWT tokens
 SECRET_KEY = os.getenv('JWT_SECRET_KEY', str(uuid.uuid4()))
@@ -67,10 +67,10 @@ def record_waste_disposal():
     location_lat = data.get('location_lat')
     location_lng = data.get('location_lng')
     bin_id = data.get('bin_id')
-    
+
     if not user_id or not waste_type:
         return jsonify({"error": "User ID and waste type are required"}), 400
-    
+
     # Calculate points based on waste type
     points_map = {
         'Plastic': 10,
@@ -79,33 +79,33 @@ def record_waste_disposal():
         'E-Waste': 20,
         'Glass': 12
     }
-    
+
     points_earned = points_map.get(waste_type, 5) * float(quantity)
-    
+
     # Ensure database connection is active
     if not db_manager.connection or not db_manager.connection.is_connected():
         db_manager.connect()
-    
+
     try:
         # Record the waste scan
         scan_query = """
-            INSERT INTO waste_scans 
-            (user_id, bin_id, waste_type, points_earned, quantity, location_lat, location_lng) 
+            INSERT INTO waste_scans
+            (user_id, bin_id, waste_type, points_earned, quantity, location_lat, location_lng)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         db_manager.execute_query(scan_query, (user_id, bin_id, waste_type, points_earned, quantity, location_lat, location_lng))
-        
+
         # Update user's total points
         update_points_query = """
             UPDATE users SET total_points = total_points + %s WHERE id = %s
         """
         db_manager.execute_query(update_points_query, (points_earned, user_id))
-        
+
         # Get user's updated total points
         get_points_query = "SELECT total_points FROM users WHERE id = %s"
         result = db_manager.execute_query(get_points_query, (user_id,))
         total_points = result[0]['total_points'] if result else points_earned
-        
+
         return jsonify({
             "status": "success",
             "message": f"Successfully recorded {waste_type} disposal",
@@ -124,15 +124,15 @@ def get_rewards():
     # Ensure database connection is active
     if not db_manager.connection or not db_manager.connection.is_connected():
         db_manager.connect()
-    
+
     try:
         query = """
-            SELECT * FROM rewards 
-            WHERE is_active = TRUE 
+            SELECT * FROM rewards
+            WHERE is_active = TRUE
             ORDER BY points_required ASC
         """
         rewards = db_manager.execute_query(query)
-        
+
         return jsonify({
             "status": "success",
             "rewards": rewards
@@ -149,33 +149,33 @@ def redeem_reward():
     data = request.get_json()
     user_id = data.get('user_id')
     reward_id = data.get('reward_id')
-    
+
     if not user_id or not reward_id:
         return jsonify({"error": "User ID and reward ID are required"}), 400
-    
+
     # Ensure database connection is active
     if not db_manager.connection or not db_manager.connection.is_connected():
         db_manager.connect()
-    
+
     try:
         # Get reward details
         reward_query = "SELECT * FROM rewards WHERE id = %s AND is_active = TRUE"
         reward = db_manager.execute_query(reward_query, (reward_id,))
-        
+
         if not reward:
             return jsonify({"error": "Reward not found or inactive"}), 404
-        
+
         points_required = reward[0]['points_required']
-        
+
         # Check if user has enough points
         user_query = "SELECT total_points FROM users WHERE id = %s"
         user = db_manager.execute_query(user_query, (user_id,))
-        
+
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
+
         user_points = user[0]['total_points']
-        
+
         if user_points < points_required:
             return jsonify({
                 "status": "error",
@@ -183,25 +183,25 @@ def redeem_reward():
                 "user_points": user_points,
                 "points_required": points_required
             }), 400
-        
+
         # Record redemption
         redemption_query = """
-            INSERT INTO reward_redemptions 
-            (user_id, reward_id, points_used) 
+            INSERT INTO reward_redemptions
+            (user_id, reward_id, points_used)
             VALUES (%s, %s, %s)
         """
         db_manager.execute_query(redemption_query, (user_id, reward_id, points_required))
-        
+
         # Update user points
         update_points_query = """
             UPDATE users SET total_points = total_points - %s WHERE id = %s
         """
         db_manager.execute_query(update_points_query, (points_required, user_id))
-        
+
         # Get updated user points
         updated_user = db_manager.execute_query(user_query, (user_id,))
         updated_points = updated_user[0]['total_points']
-        
+
         return jsonify({
             "status": "success",
             "message": f"Successfully redeemed {reward[0]['name']}",
@@ -220,14 +220,14 @@ def db_test():
     # Ensure database connection is active
     if not db_manager.connection or not db_manager.connection.is_connected():
         db_manager.connect()
-        
+
     try:
         # Test query to check if we can access data
         result = db_manager.execute_query("SELECT COUNT(*) as user_count FROM users")
-        
+
         # Get table list to verify database structure
         tables = db_manager.execute_query("SHOW TABLES")
-        
+
         return jsonify({
             "status": "success",
             "message": "Database connection successful",
@@ -248,28 +248,28 @@ def create_user():
     email = data.get('email')
     password = data.get('password')
     city = data.get('city', '')
-    
+
     if not username or not email or not password:
         return jsonify({"error": "Username, email, and password are required"}), 400
-    
+
     # Ensure database connection is active
     if not db_manager.connection or not db_manager.connection.is_connected():
         db_manager.connect()
-    
+
     # Check if username or email already exists
     check_query = "SELECT * FROM users WHERE username = %s OR email = %s"
     existing_user = db_manager.execute_query(check_query, (username, email))
-    
+
     if existing_user and len(existing_user) > 0:
         return jsonify({"error": "Username or email already exists"}), 409
-        
+
     try:
         # Hash the password before storing
         password_hash = generate_password_hash(password)
-        
+
         query = "INSERT INTO users (username, email, password_hash, region) VALUES (%s, %s, %s, %s)"
         result = db_manager.execute_query(query, (username, email, password_hash, city))
-        
+
         if result:
             # Get the newly created user
             new_user = db_manager.execute_query("SELECT * FROM users WHERE username = %s", (username,))
@@ -278,7 +278,7 @@ def create_user():
                 user_data = new_user[0]
                 session_token = create_session_token(user_data['id'])
                 return jsonify({
-                    "message": "User created successfully", 
+                    "message": "User created successfully",
                     "username": username,
                     "user_id": user_data['id'],
                     "token": session_token
@@ -295,7 +295,7 @@ def get_user(username):
     """Get user by username"""
     query = "SELECT * FROM users WHERE username = %s"
     result = db_manager.execute_query(query, (username,))
-    
+
     if result and len(result) > 0:
         # Don't return password hash in response
         user_data = result[0]
@@ -304,43 +304,43 @@ def get_user(username):
         return jsonify(user_data)
     else:
         return jsonify({"error": "User not found"}), 404
-        
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """Login a user"""
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    
+
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
-    
+
     # Ensure database connection is active
     if not db_manager.connection or not db_manager.connection.is_connected():
         db_manager.connect()
-        
+
     try:
         # Get user by username
         query = "SELECT * FROM users WHERE username = %s"
         result = db_manager.execute_query(query, (username,))
-        
+
         if not result or len(result) == 0:
             return jsonify({"error": "Invalid username or password"}), 401
-        
+
         user_data = result[0]
-        
+
         # Check if password_hash field exists
         if 'password_hash' not in user_data:
             return jsonify({"error": "User account not properly configured"}), 500
-            
+
         # Verify password
         if check_password_hash(user_data['password_hash'], password):
             # Create session token
             session_token = create_session_token(user_data['id'])
-            
+
             # Remove password hash from response
             del user_data['password_hash']
-            
+
             return jsonify({
                 "message": "Login successful",
                 "user": user_data,
@@ -359,7 +359,7 @@ def scan_waste():
     user_id = data.get('user_id')
     waste_type = data.get('waste_type')
     confidence = data.get('confidence', random.uniform(80, 100))
-    
+
     # Points mapping
     points_map = {
         'Plastic': 10,
@@ -368,21 +368,21 @@ def scan_waste():
         'E-Waste': 20,
         'Glass': 12
     }
-    
+
     points_earned = points_map.get(waste_type, 0)
-    
+
     # Insert scan record
     scan_query = """
-        INSERT INTO waste_scans (user_id, waste_type, confidence_score, points_earned) 
+        INSERT INTO waste_scans (user_id, waste_type, confidence_score, points_earned)
         VALUES (%s, %s, %s, %s)
     """
     scan_result = db_manager.execute_query(scan_query, (user_id, waste_type, confidence, points_earned))
-    
+
     # Update user points if scan was successful
     if scan_result and user_id:
         update_query = "UPDATE users SET total_points = total_points + %s WHERE id = %s"
         db_manager.execute_query(update_query, (points_earned, user_id))
-    
+
     if scan_result:
         return jsonify({
             "message": "Scan recorded successfully",
@@ -398,34 +398,23 @@ def get_bins():
     """Get all bin locations"""
     query = "SELECT * FROM bins"
     result = db_manager.execute_query(query)
-    
+
     if result is not None:
         return jsonify(result)
     else:
         return jsonify({"error": "Failed to fetch bins"}), 500
 
-@app.route('/api/rewards', methods=['GET'])
-def get_rewards():
-    """Get all available rewards"""
-    query = "SELECT * FROM rewards WHERE is_active = TRUE ORDER BY points_required ASC"
-    result = db_manager.execute_query(query)
-    
-    if result is not None:
-        return jsonify(result)
-    else:
-        return jsonify({"error": "Failed to fetch rewards"}), 500
-
 @app.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard():
     """Get top users by points"""
     query = """
-        SELECT username, total_points, created_at 
-        FROM users 
-        ORDER BY total_points DESC 
+        SELECT username, total_points, created_at
+        FROM users
+        ORDER BY total_points DESC
         LIMIT 10
     """
     result = db_manager.execute_query(query)
-    
+
     if result is not None:
         return jsonify(result)
     else:
@@ -437,19 +426,19 @@ def get_user_stats(user_id):
     # Get user info
     user_query = "SELECT * FROM users WHERE id = %s"
     user_result = db_manager.execute_query(user_query, (user_id,))
-    
+
     # Get scan statistics
     stats_query = """
-        SELECT 
+        SELECT
             waste_type,
             COUNT(*) as scan_count,
             SUM(points_earned) as total_points_from_type
-        FROM waste_scans 
-        WHERE user_id = %s 
+        FROM waste_scans
+        WHERE user_id = %s
         GROUP BY waste_type
     """
     stats_result = db_manager.execute_query(stats_query, (user_id,))
-    
+
     if user_result and len(user_result) > 0:
         return jsonify({
             "user": user_result[0],
@@ -458,98 +447,26 @@ def get_user_stats(user_id):
     else:
         return jsonify({"error": "User not found"}), 404
 
-@app.route('/api/rewards/redeem', methods=['POST'])
-def redeem_reward():
-    """Redeem a reward for a user"""
-    data = request.json
-    
-    # Validate required fields
-    if not all(k in data for k in ['user_id', 'reward_id']):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    user_id = data['user_id']
-    reward_id = data['reward_id']
-    
-    # Get user points
-    user_query = "SELECT total_points FROM users WHERE id = %s"
-    user_result = db_manager.execute_query(user_query, (user_id,))
-    
-    if not user_result or len(user_result) == 0:
-        return jsonify({"error": "User not found"}), 404
-    
-    user_points = user_result[0]['total_points']
-    
-    # Get reward details
-    reward_query = "SELECT * FROM rewards WHERE id = %s AND is_active = TRUE"
-    reward_result = db_manager.execute_query(reward_query, (reward_id,))
-    
-    if not reward_result or len(reward_result) == 0:
-        return jsonify({"error": "Reward not found or not active"}), 404
-    
-    reward = reward_result[0]
-    points_required = reward['points_required']
-    
-    # Check if user has enough points
-    if user_points < points_required:
-        return jsonify({
-            "error": "Insufficient points", 
-            "points_required": points_required,
-            "user_points": user_points,
-            "points_needed": points_required - user_points
-        }), 400
-    
-    # Create redemption record
-    redemption_query = """
-        INSERT INTO reward_redemptions 
-        (user_id, reward_id, points_used, status) 
-        VALUES (%s, %s, %s, 'completed')
-    """
-    redemption_result = db_manager.execute_query(
-        redemption_query, 
-        (user_id, reward_id, points_required)
-    )
-    
-    if not redemption_result:
-        return jsonify({"error": "Failed to redeem reward"}), 500
-    
-    # Update user points
-    update_points_query = "UPDATE users SET total_points = total_points - %s WHERE id = %s"
-    update_result = db_manager.execute_query(
-        update_points_query, 
-        (points_required, user_id)
-    )
-    
-    if not update_result:
-        return jsonify({"error": "Failed to update user points"}), 500
-    
-    return jsonify({
-        "success": True,
-        "message": f"Successfully redeemed {reward['name']}",
-        "reward": reward,
-        "points_used": points_required,
-        "remaining_points": user_points - points_required
-    })
-
 def initialize_database():
     """Initialize database and tables"""
     print("Initializing database...")
-    
+
     # Create database if it doesn't exist
     if not db_manager.create_database_if_not_exists():
         print("Failed to create database")
         return False
-    
+
     # Connect to database
     if not db_manager.connect():
         print("Failed to connect to database")
         return False
-    
+
     # Create tables
     db_manager.create_tables()
-    
+
     # Seed with sample data
     db_manager.seed_data()
-    
+
     print("Database initialization completed!")
     return True
 

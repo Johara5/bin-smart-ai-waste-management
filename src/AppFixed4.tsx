@@ -5,13 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from 'react';
 import WasteScanner from "./pages/WasteScanner";
-import Dashboard from "./pages/Dashboard";
+import DashboardFixed from "./pages/DashboardFixed";
 import DashboardWithNav from "./pages/DashboardWithNav";
 import Rewards from "./pages/Rewards";
 import BinLocator from "./pages/BinLocator";
 import NotFound from "./pages/NotFound";
 import Introduction from "./pages/Introduction";
-import AuthPage from "./components/AuthPage";
+import AuthPageFixed3 from "./components/AuthPageFixed3";
 import AdminDashboard from "./components/AdminDashboard";
 import UserHistory from "./components/UserHistory";
 import FeedbackSystem from "./components/FeedbackSystem";
@@ -34,22 +34,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => {
+const AppFixed4 = () => {
   const [showSplash, setShowSplash] = useState(true);
-  
+
   useEffect(() => {
     // Auto-hide splash screen after 3 seconds
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 3000);
-    
+
     return () => clearTimeout(timer);
   }, []);
-  
+
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -61,16 +61,16 @@ const App = () => {
             {/* Main App Flow */}
             <Route path="/" element={<Navigate to="/introduction" replace />} />
             <Route path="/introduction" element={<Introduction />} />
-            <Route path="/auth" element={<AuthPage />} />
-            
+            <Route path="/auth" element={<AuthPageFixed3 />} />
+
             {/* User Dashboard and Features */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardFixed /></ProtectedRoute>} />
             <Route path="/dashboard-with-nav" element={<ProtectedRoute><DashboardWithNav /></ProtectedRoute>} />
             <Route path="/scan" element={<ProtectedRoute><WasteScanner /></ProtectedRoute>} />
             <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
             <Route path="/bins" element={<ProtectedRoute><BinLocator /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><UserHistory /></ProtectedRoute>} />
-            
+
             {/* Admin and Testing Routes */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/feedback" element={<FeedbackSystem />} />
@@ -79,7 +79,7 @@ const App = () => {
             <Route path="/basic" element={<BasicTest />} />
             <Route path="/analytics" element={<AnalyticsDashboard />} />
             <Route path="/mic-test" element={<MicTest />} />
-            
+
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -89,4 +89,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default AppFixed4;

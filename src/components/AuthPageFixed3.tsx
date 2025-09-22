@@ -6,12 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiService } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
-interface AuthPageProps {
-  onLogin: () => void;
-}
-
-const AuthPage = ({ onLogin }: AuthPageProps) => {
+const AuthPageFixed3 = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,6 +19,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
   });
 
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,96 +30,40 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
 
     try {
       if (isLogin) {
-        // Handle login
-        const response = await fetch('http://localhost:8080/api/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: formData.email,
-            password: formData.password,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Login failed');
-        }
+        // Handle login using apiService - pass email as username since backend supports both
+        const response = await apiService.login(formData.email, formData.password);
 
         // Store user data and token in localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.token);
 
         toast({
           title: 'Login Successful',
-          description: 'Welcome back to BinSmart!',
+          description: 'Welcome back to EcoBin!',
         });
 
-        onLogin();
+        navigate('/dashboard');
       } else {
-        // Handle registration
-        const response = await fetch('http://localhost:8080/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: formData.email,
-            email: formData.email,
-            password: formData.password,
-            city: formData.city,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Registration failed');
-        }
+        // Handle registration using apiService
+        const response = await apiService.register(formData.name, formData.email, formData.password, formData.city);
 
         // Store user data and token in localStorage
-        if (data.token) {
-          // Safely handle user data with proper null checks
+        if (response.token) {
           const userData = {
-            id: data.user_id || null,
-            username: data.username || formData.email.split('@')[0], // Fallback to email prefix
+            id: response.user_id,
+            username: response.username,
             email: formData.email,
           };
 
-          try {
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('token', data.token);
-
-            toast({
-              title: 'Registration Successful',
-              description: 'Welcome to BinSmart!',
-            });
-
-            onLogin();
-          } catch (storageError) {
-            console.error('Error storing user data:', storageError);
-            setError('Failed to save user session. Please try logging in manually.');
-
-            toast({
-              title: 'Registration Successful',
-              description: 'Please login with your new account',
-            });
-
-            // Switch to login view
-            setIsLogin(true);
-            setFormData(prev => ({ ...prev, password: '' }));
-          }
-        } else {
-          // If no token is returned, switch to login view
-          setIsLogin(true);
-          setFormData(prev => ({ ...prev, password: '' }));
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('token', response.token);
 
           toast({
             title: 'Registration Successful',
-            description: 'Please login with your new account',
+            description: 'Welcome to EcoBin!',
           });
+
+          navigate('/dashboard');
         }
       }
     } catch (error) {
@@ -158,6 +100,20 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Test Credentials Info */}
+          {isLogin && (
+            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-sm text-green-800 dark:text-green-200 font-medium mb-1">✅ Test Credentials:</p>
+              <p className="text-xs text-green-700 dark:text-green-300">
+                Email: <code className="bg-green-100 dark:bg-green-900 px-1 rounded">aishashaikh@gmail.com</code><br/>
+                Password: <code className="bg-green-100 dark:bg-green-900 px-1 rounded">password</code>
+              </p>
+              <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                Or try: <code className="bg-green-100 dark:bg-green-900 px-1 rounded">testuser</code> with password <code className="bg-green-100 dark:bg-green-900 px-1 rounded">password</code>
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
@@ -178,13 +134,15 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">
+                {isLogin ? 'Email / Username' : 'Email'}
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="Enter your email"
+                  type="text"
+                  placeholder={isLogin ? "Enter email or username" : "Enter your email"}
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
@@ -236,7 +194,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-eco hover:opacity-90 text-primary-foreground font-semibold py-3 shadow-eco transition-all duration-300"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transition-all"
               disabled={isLoading}
             >
               {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
@@ -257,8 +215,6 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             </div>
           )}
 
-
-
           <div className="text-center">
             <span className="text-sm text-muted-foreground">
               {isLogin ? "Don't have an account? " : "Already have an account? "}
@@ -276,4 +232,4 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
   );
 };
 
-export default AuthPage;
+export default AuthPageFixed3;

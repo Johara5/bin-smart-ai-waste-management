@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  AlertTriangle, 
-  Star, 
-  Send, 
-  CheckCircle, 
+import {
+  MessageSquare,
+  AlertTriangle,
+  Star,
+  Send,
+  CheckCircle,
   Clock,
   Flag,
   MessageCircle,
@@ -193,7 +193,7 @@ const FeedbackSystem = () => {
         setIsLoading(true);
         const [complaintsData, notificationsData, binsData] = await Promise.all([
           feedbackApiService.getComplaints(currentUserId),
-          feedbackApiService.getUserNotifications(currentUserId),
+          feedbackApiService.getNotifications(currentUserId),
           feedbackApiService.getBins()
         ]);
         
@@ -241,7 +241,7 @@ const FeedbackSystem = () => {
   const refreshNotifications = async () => {
     try {
       console.log('Refreshing notifications...');
-      const notificationsData = await feedbackApiService.getUserNotifications(currentUserId);
+      const notificationsData = await feedbackApiService.getNotifications(currentUserId);
       console.log('Refreshed notifications data:', notificationsData);
       setNotifications(notificationsData || { notifications: [] });
     } catch (error) {

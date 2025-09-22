@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Bot,
   Send,
@@ -18,11 +18,11 @@ import {
   Zap,
   Award
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
 
 interface Message {
   id: string;
@@ -151,7 +151,7 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
   ];
 
   // Voice recognition setup
-  const initSpeechRecognition = () => {
+  const initSpeechRecognition = useCallback(() => {
     try {
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
@@ -193,13 +193,13 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
     } catch (error) {
       console.error('Failed to initialize speech recognition:', error);
     }
-  };
+  }, []);
 
   // Text-to-speech function
-  const speakText = (text: string) => {
+  const speakText = useCallback((text: string) => {
     if (speechEnabled && 'speechSynthesis' in window) {
       setIsSpeaking(true);
-      const utterance = new SpeechSynthesisUtterance(text.replace(/\*\*|\*|\n|•/gu, ''));
+      const utterance = new SpeechSynthesisUtterance(text.replace(/\*\*|\*|\n|•/g, ''));
       utterance.rate = 0.9;
       utterance.pitch = 1.1;
       utterance.volume = 0.8;
@@ -210,7 +210,7 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
 
       speechSynthesis.speak(utterance);
     }
-  };
+  }, [speechEnabled]);
 
   // Start voice recognition
   const startListening = () => {
@@ -275,13 +275,13 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
         }, 500);
       }
     }
-  }, [isOpen, messages.length, speakText, speechEnabled]);
+  }, [isOpen, messages.length, initSpeechRecognition, speechEnabled, speakText]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const generateBotResponse = (userMessage: string): { response: string; mood: string } => {
+  const generateBotResponse = (userMessage: string): { response: string; mood: 'happy' | 'excited' | 'thinking' | 'helpful' } => {
     const lowerMessage = userMessage.toLowerCase();
 
     // Increment interaction count
@@ -310,7 +310,7 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
     // Check for specific waste types with mood
     for (const [category, data] of Object.entries(knowledgeBase)) {
       if (data.keywords.some(keyword => lowerMessage.includes(keyword))) {
-        return { response: data.response, mood: data.mood || 'helpful' };
+        return { response: data.response, mood: data.mood };
       }
     }
 
@@ -369,7 +369,7 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
     return { response: genericResponses[Math.floor(Math.random() * genericResponses.length)], mood: 'thinking' };
   };
 
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -401,7 +401,7 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
       };
 
       setMessages(prev => [...prev, botResponse]);
-      setBotMood(botResponseData.mood as 'happy' | 'excited' | 'thinking' | 'helpful');
+      setBotMood(botResponseData.mood);
       setIsTyping(false);
 
       // Speak the response if speech is enabled
@@ -418,7 +418,8 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    setInputMessage(suggestion.replace(/^[🍼📱🌱🏆♾️🌍🤖]\s*/u, '')); // Remove emoji prefix
+    // Fix regex to work with older ES versions
+    setInputMessage(suggestion.replace(/^[🍼📱🌱🏆♾️🌍🤖]\s*/, ''));
   };
 
   const clearChat = () => {

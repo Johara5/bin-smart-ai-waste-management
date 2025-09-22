@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Bot,
   Send,
@@ -135,11 +135,6 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
     },
     general: {
       keywords: ['help', 'how', 'what', 'where', 'when', 'why'],
-      response: "🌱 **I'm here to help!** I can assist you with:\n- Waste sorting guidelines\n- Recycling tips\n- Finding nearby bins\n- Understanding point system\n- Environmental impact info\n\nJust ask me about any type of waste!",
-      mood: 'helpful'
-    }
-  };
-
   const quickSuggestions = [
     "🍼 How do I dispose of plastic bottles?",
     "📱 What counts as e-waste?",
@@ -369,7 +364,7 @@ const AIAssistant = ({ isOpen, onClose }: AIAssistantProps) => {
     return { response: genericResponses[Math.floor(Math.random() * genericResponses.length)], mood: 'thinking' };
   };
 
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
